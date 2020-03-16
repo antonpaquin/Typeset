@@ -1,0 +1,35 @@
+selection_mode_add.svg 
+	Freepik
+	Modified from https://www.flaticon.com/free-icon/intersect_648451
+
+selection_mode_intersect.svg
+	Freepik
+	Modified from https://www.flaticon.com/free-icon/intersect_648451
+
+selection_mode_replace.svg
+	Freepik
+	Modified from https://www.flaticon.com/free-icon/intersect_648451
+
+selection_mode_subtract.svg
+	Freepik
+	Modified from https://www.flaticon.com/free-icon/intersect_648451
+
+selection_tool_flood.svg
+	Freepik
+	Modified from https://www.flaticon.com/free-icon/magic-wand_751450
+
+selection_tool_ellipse.svg
+	Those Icons
+	Modified from https://www.flaticon.com/free-icon/ellipse_482680
+
+selection_tool_rectangle.svg
+	Those Icons
+	Modified from https://www.flaticon.com/free-icon/square_482681
+
+selection_tool_brush.svg
+	Freepik
+	Modified from https://www.flaticon.com/free-icon/paintbrush_2050922
+
+about.svg
+	Pixel Perfect
+	Modified from https://www.flaticon.com/free-icon/question_1828940
