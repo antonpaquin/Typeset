@@ -33,3 +33,11 @@ selection_tool_brush.svg
 about.svg
 	Pixel Perfect
 	Modified from https://www.flaticon.com/free-icon/question_1828940
+
+plus.svg
+	Pixel Perfect
+	Modified from https://www.flaticon.com/free-icon/plus_1828921
+
+x.svg
+	Pixel Perfect
+	Modified from https://www.flaticon.com/free-icon/close_1828774

@@ -1,6 +1,23 @@
-class Toolpane {
+class Toolpane extends UIComponent {
 	constructor(editor) {
+		super();
 		this.editor = editor;
+
+		this.element = null;
+		this.inner_element = null;
+
+		this.bar_tools = new Toolbar(this);
+		this.bar_context = new Toolbar(this);
+
+		this.t_select_rect = new ToolbarSelectRect(this.bar_tools);
+		this.t_select_ellipse = new ToolbarSelectEllipse(this.bar_tools);
+		this.t_select_flood = new ToolbarSelectFlood(this.bar_tools);
+		this.t_select_brush = new ToolbarSelectBrush(this.bar_tools);
+		this.t_about = new ToolbarAbout(this.bar_tools);
+	}
+
+	construct_node() {
+		super.construct_node();
 
 		this.element = document.createElement("div");
 		this.element.style["display"] = "inline-block";
@@ -13,36 +30,57 @@ class Toolpane {
 		this.inner_element.style["height"] = "calc(100vh - 28px)";
 		this.element.appendChild(this.inner_element);
 
-		this.bar_tools = new Toolbar(this);
-		this.bar_context = new Toolbar(this);
+		this.inner_element.appendChild(this.bar_tools.construct_node());
+		this.inner_element.appendChild(this.bar_context.construct_node());
 
-		this.inner_element.appendChild(this.bar_tools.element);
-		this.inner_element.appendChild(this.bar_context.element);
+		this.bar_tools.add_item(this.t_select_rect);
+		this.bar_tools.add_item(this.t_select_ellipse);
+		this.bar_tools.add_item(this.t_select_flood);
+		this.bar_tools.add_item(this.t_select_brush);
+		this.bar_tools.add_item(this.t_about);
 
-		this.bar_tools.add_item(new ToolbarSelectRect(this.bar_tools));
-		this.bar_tools.add_item(new ToolbarSelectEllipse(this.bar_tools));
-		this.bar_tools.add_item(new ToolbarSelectFlood(this.bar_tools));
-		this.bar_tools.add_item(new ToolbarSelectBrush(this.bar_tools));
-		this.bar_tools.add_item(new ToolbarAbout(this.bar_tools));
 		this.bar_tools.tools[0].activate();
+
+		return this.element;
+	}
+
+	onload() {
+		super.onload();
+		this.bar_tools.onload();
+		this.bar_context.onload();
+
+		this.t_select_rect.onload();
+		this.t_select_ellipse.onload();
+		this.t_select_flood.onload();
+		this.t_select_brush.onload();
+		this.t_about.onload();
 	}
 }
 
-class Toolbar {
+class Toolbar extends UIComponent {
 	constructor(toolpane) {
+		super();
 		this.toolpane = toolpane;
 
-		this.element = document.createElement("div");
-		this.element.style["flex-grow"] = 1;
-		this.element.style["flex-flow"] = "column";
+		this.element = null;
 
 		this.tools = [];
 		this.active_tool = null;
 	}
 
+	construct_node() {
+		super.construct_node();
+
+		this.element = document.createElement("div");
+		this.element.style["flex-grow"] = 1;
+		this.element.style["flex-flow"] = "column";
+
+		return this.element;
+	}
+
 	add_item(item) {
 		this.tools.push(item);
-		this.element.appendChild(item.element);
+		this.element.appendChild(item.construct_node());
 	}
 
 	clear() {
@@ -54,31 +92,44 @@ class Toolbar {
 	}
 }
 
-class ToolbarItem {
+class ToolbarItem extends UIComponent {
 	constructor(toolbar, icon) {
+		super();
+
 		this.toolbar = toolbar;
 		this.toolpane = toolbar.toolpane;
+		this.icon_src = icon;
+
+		this.element = null;
+		this.icon = null;
+
+		this.onclick = this.onclick.bind(this);
+	}
+
+	construct_node() {
+		super.construct_node();
 
 		this.element = document.createElement("div");
 		this.element.style["margin"] = "5px";
 		this.element.style["border"] = "1px solid black";
 		this.element.style["border-radius"] = "5px";
 		this.element.style["user-select"] = "none";
+		this.element.style["cursor"] = "pointer";
 
 		this.icon = document.createElement("img");
-		this.icon.src = icon;
+		this.icon.src = this.icon_src;
 		this.icon.style["width"] = "25px";
 		this.icon.style["height"] = "25px";
 		this.icon.style["padding"] = "5px";
 		this.element.appendChild(this.icon);
 
-		this.onclick = this.onclick.bind(this);
-		this.activate = this.activate.bind(this);
-
 		this.element.addEventListener("click", this.onclick);
+
+		return this.element;
 	}
 
 	onclick(ev) {
+		this.assert_ready();
 		this.activate();
 		ev.stopPropagation();
 	}
@@ -105,8 +156,8 @@ function toolbar_selector_modegen(icon, mode) {
 
 		activate() {
 			super.activate();
-			let selections = this.toolpane.editor.selections;
-			selections.active_mode = this.mode;
+			let settings = this.toolpane.editor.selections.settings;
+			settings.set("active_mode", this.mode);
 		}
 	}
 	return T;
@@ -127,8 +178,8 @@ function toolbar_selector_toolgen(icon, tool, ctx_extras) {
 		}
 		activate() {
 			super.activate();
-			let selections = this.toolpane.editor.selections;
-			selections.active_tool = tool;
+			let settings = this.toolpane.editor.selections.settings;
+			settings.set("active_tool", tool);
 			let context_bar = this.toolpane.bar_context;
 			let ctx_tools = [
 				ToolbarSelectModeReplace,
@@ -138,8 +189,9 @@ function toolbar_selector_toolgen(icon, tool, ctx_extras) {
 			].concat(ctx_extras);
 			ctx_tools.forEach((ToolC) => {
 				let ctx_tool = new ToolC(context_bar);
+				ctx_tool.onload();
 				context_bar.add_item(ctx_tool);
-				if (selections.active_mode == ctx_tool.mode) {
+				if (settings.get("active_mode") == ctx_tool.mode) {
 					ctx_tool.activate();
 				}
 			});
@@ -153,10 +205,24 @@ function toolbar_selector_toolgen(icon, tool, ctx_extras) {
 	return C;
 }
 
-class ToolbarSlider{
+class ToolbarSlider extends UIComponent {
 	constructor(toolbar, slidermin, slidermax, sliderstep) {
+		super();
+
 		this.toolbar = toolbar;
-		this.selections = toolbar.toolpane.editor.selections;
+		this.settings = toolbar.toolpane.editor.selections.settings;
+
+		this.slidermin = slidermin;
+		this.slidermax = slidermax;
+		this.sliderstep = sliderstep;
+
+		this.element = null;
+		this.slider = null;
+		this.textdisp = null;
+	}
+
+	construct_node() {
+		super.construct_node();
 
 		this.element = document.createElement("div");
 		this.element.style["margin"] = "5px";
@@ -167,9 +233,9 @@ class ToolbarSlider{
 		
 		this.slider = document.createElement("input");
 		this.slider.type = "range";
-		this.slider.min = slidermin;
-		this.slider.max = slidermax;
-		this.slider.step = sliderstep;
+		this.slider.min = this.slidermin;
+		this.slider.max = this.slidermax;
+		this.slider.step = this.sliderstep;
 		this.slider.style["width"] = "25px";
 		this.slider.style["margin"] = "5px";
 		this.slider.style["padding"] = "0px";
@@ -198,9 +264,12 @@ class ToolbarSlider{
 		this.textdisp.addEventListener("input", (ev) => {
 			this.set_value(this.textdisp.value);
 		});
+
+		return this.element;
 	}
 
 	get_value() {
+		/* stub! */
 	}
 
 	set_value(value) {
@@ -214,11 +283,11 @@ class ToolbarBrushSlider extends ToolbarSlider {
 		super(toolbar, 1, 100, 1);
 	}
 	get_value() {
-		return this.selections.brush_radius;
+		return this.settings.get("brush_radius");
 	}
 	set_value(value) {
 		super.set_value(value);
-		this.selections.brush_radius = value;
+		this.settings.set("brush_radius", value);
 	}
 }
 
@@ -227,11 +296,11 @@ class ToolbarFloodSlider extends ToolbarSlider {
 		super(toolbar, 0, 1, 0.01);
 	}
 	get_value() {
-		return this.selections.flood_threshold;
+		return this.settings.get("flood_threshold");
 	}
 	set_value(value) {
 		super.set_value(value);
-		this.selections.flood_threshold = value;
+		this.settings.set("flood_threshold", value);
 	}
 }
 
@@ -240,11 +309,6 @@ ToolbarSelectEllipse = toolbar_selector_toolgen("selection_tool_ellipse.svg", SE
 ToolbarSelectFlood = toolbar_selector_toolgen("selection_tool_flood.svg", SELECTION_TOOL.FLOOD, [ToolbarFloodSlider]);
 ToolbarSelectBrush = toolbar_selector_toolgen("selection_tool_brush.svg", SELECTION_TOOL.BRUSH, [ToolbarBrushSlider]);
 
-const ABOUT = [
-	"Icons made by <a target=\"blank\" href=\"https://www.flaticon.com/authors/freepik\" title=\"Freepik\">Freepik</a> from <a target=\"blank\" href=\"https://www.flaticon.com/\" title=\"Flaticon\">www.flaticon.com</a>",
-	"Icons made by <a target=\"blank\" href=\"https://www.flaticon.com/authors/those-icons\" title=\"Those Icons\">Those Icons</a> from <a target=\"blank\" href=\"https://www.flaticon.com/\" title=\"Flaticon\">www.flaticon.com</a>",
-	"Icons made by <a target=\"blank\" href=\"https://www.flaticon.com/authors/pixel-perfect\" title=\"Pixel perfect\">Pixel perfect</a> from <a target=\"blank\" href=\"https://www.flaticon.com/\" title=\"Flaticon\"> www.flaticon.com</a>"
-];
 
 class ToolbarAbout extends ToolbarItem {
 	constructor(toolbar) {
@@ -252,47 +316,195 @@ class ToolbarAbout extends ToolbarItem {
 	}
 
 	onclick(ev) {
-		let parentElem = this.toolbar.toolpane.editor.element;
-
-		let aboutModal = document.createElement("div");
-		aboutModal.style["position"] = "absolute";
-		aboutModal.style["left"] = "0px";
-		aboutModal.style["top"] = "0px";
-		aboutModal.style["height"] = "100%";
-		aboutModal.style["width"] = "100%";
-		aboutModal.style["background-color"] = "#000000BB";
-		parentElem.appendChild(aboutModal);
-
-		let aboutElem = document.createElement("div");
-		aboutElem.style["position"] = "absolute";
-		aboutElem.style["left"] = "50%";
-		aboutElem.style["top"] = "100px";
-		aboutElem.style["transform"] = "translate(-50%, 0)";
-		aboutElem.style["width"] = "fit-content";
-		aboutElem.style["max-width"] = "80%";
-		aboutElem.style["padding"] = "40px";
-		aboutElem.style["border-radius"] = "20px";
-		aboutElem.style["white-space"] = "normal";
-		aboutElem.style["background-color"] = "#EEEEEE";
-		aboutModal.appendChild(aboutElem);
-
-		for (let ii=0; ii<ABOUT.length; ii++) {
-			let p = document.createElement("p");
-			p.innerHTML = ABOUT[ii];
-			aboutElem.appendChild(p);
-		}
-		aboutModal.addEventListener("mousedown", function(ev) {
-			parentElem.removeChild(aboutModal);
-			ev.stopPropagation();
-		});
-		aboutElem.addEventListener("mousedown", function(ev) {
-			ev.stopPropagation();
-		});
+		let parent_elem = this.toolbar.toolpane.editor.element;
+		let about_modal = new AboutModal(this.toolbar, parent_elem);
+		about_modal.construct_node();
 		ev.stopPropagation();
 	}
 }
 
-class LayerMenu {
-	constructor() {
+class LayerMenu extends UIComponent {
+	constructor(selections) {
+		super();
+		this.selections = selections;
+
+		this.element = null;
+		this.add_button = null;
+		this.active_layer = null;
+	}
+
+	construct_node() {
+		super.construct_node();
+
+		this.element = document.createElement("div");
+		this.element.style["display"] = "flex";
+		this.element.style["flex-flow"] = "column";
+		this.element.style["border"] = "2px solid black";
+		this.element.style["padding"] = "5px";
+		this.element.style["margin"] = "5px";
+		this.element.style["height"] = "max-content";
+
+		this.add_button = document.createElement("div");
+		this.add_button.style["margin"] = "4px";
+		this.add_button.style["width"] = "100px";
+		this.add_button.style["border"] = "1px solid black";
+		this.add_button.style["cursor"] = "pointer";
+		this.add_button.style["text-align"] = "center";
+		this.element.appendChild(this.add_button);
+
+		let img = document.createElement("img");
+		img.src = get_resource("plus.svg");
+		img.style["width"] = "10px";
+		img.style["height"] = "10px";
+		img.style["margin"] = "4px";
+		this.add_button.appendChild(img);
+
+		this.add_button.addEventListener("mousedown", (ev) => {
+			ev.stopPropagation();
+			let layer = this.selections.add_layer();
+			let entry = new LayerMenuEntry(this, layer);
+			this.add_layer(entry);
+			entry.onload();
+		});
+
+		return this.element;
+	}
+
+	onload() {
+		super.onload();
+		this.selections.selection_layers.forEach((v, k, m) => {
+			let entry = new LayerMenuEntry(this, v);
+
+			this.add_layer(entry);
+			entry.onload();
+		});
+	}
+
+	add_layer(layer_entry) {
+		this.assert_ready();
+		this.element.insertBefore(layer_entry.construct_node(), this.add_button);
+		this.change_active_layer(layer_entry);
+	}
+
+	change_active_layer(layer_entry) {
+		if (this.active_layer !== null) {
+			this.active_layer.deactivate();
+		}
+		this.active_layer = layer_entry;
+		this.active_layer.activate();
+	}
+}
+
+class LayerMenuEntry extends UIComponent {
+	constructor(layer_menu, selection_layer) {
+		super();
+
+		this.layer_menu = layer_menu;
+		this.selections = layer_menu.selections;
+		this.selection_layer = selection_layer;
+
+		this.element = null;
+		this.name_box = null;
+		this.del_button = null;
+	}
+
+	construct_node() {
+		super.construct_node();
+
+		this.element = document.createElement("div");
+		this.element.style["display"] = "flex";
+		this.element.style["flex-flow"] = "row";
+		this.element.style["align-items"] = "center";
+		this.element.style["width"] = "100px";
+		this.element.style["border"] = "1px solid black";
+		this.element.style["margin"] = "4px";
+		this.element.style["cursor"] = "pointer";
+
+		this.name_box = document.createElement("p");
+		this.name_box.innerHTML = this.selection_layer.id;
+		this.name_box.style["margin"] = "4px";
+		this.element.appendChild(this.name_box);
+
+		let spacer = document.createElement("div");
+		spacer.style["flex-grow"] = 1;
+		this.element.appendChild(spacer);
+
+		this.del_button = document.createElement("img");
+		this.del_button.src = get_resource("x.svg");
+		this.del_button.style["width"] = "10px";
+		this.del_button.style["height"] = "10px";
+		this.del_button.style["margin"] = "4px";
+		this.element.appendChild(this.del_button);
+
+		this.element.addEventListener("mousedown", (ev) => {
+			ev.stopPropagation();
+			this.selections.change_active_layer(this.selection_layer.id);
+			this.layer_menu.change_active_layer(this);
+		});
+
+		return this.element;
+	}
+
+	activate() {
+		this.element.style["background-color"] = new RGBA(160, 160, 239, 90).toString();
+	}
+
+	deactivate() {
+		this.element.style["background-color"] = new RGBA(255, 255, 255, 255).toString();
+	}
+}
+
+const ABOUT = [
+	"Icons made by <a target=\"blank\" href=\"https://www.flaticon.com/authors/freepik\" title=\"Freepik\">Freepik</a> from <a target=\"blank\" href=\"https://www.flaticon.com/\" title=\"Flaticon\">www.flaticon.com</a>",
+	"Icons made by <a target=\"blank\" href=\"https://www.flaticon.com/authors/those-icons\" title=\"Those Icons\">Those Icons</a> from <a target=\"blank\" href=\"https://www.flaticon.com/\" title=\"Flaticon\">www.flaticon.com</a>",
+	"Icons made by <a target=\"blank\" href=\"https://www.flaticon.com/authors/pixel-perfect\" title=\"Pixel perfect\">Pixel perfect</a> from <a target=\"blank\" href=\"https://www.flaticon.com/\" title=\"Flaticon\"> www.flaticon.com</a>"
+];
+
+class AboutModal extends ToolbarAbout {
+	constructor(toolbar, parent_elem) {
+		super(toolbar);
+		this.parent_elem = parent_elem;
+	}
+
+	construct_node() {
+		super.construct_node();
+
+		let modal = document.createElement("div");
+		modal.style["position"] = "absolute";
+		modal.style["left"] = "0px";
+		modal.style["top"] = "0px";
+		modal.style["height"] = "100%";
+		modal.style["width"] = "100%";
+		modal.style["background-color"] = "#000000BB";
+
+		let about_elem = document.createElement("div");
+		about_elem.style["position"] = "absolute";
+		about_elem.style["left"] = "50%";
+		about_elem.style["top"] = "100px";
+		about_elem.style["transform"] = "translate(-50%, 0)";
+		about_elem.style["width"] = "fit-content";
+		about_elem.style["max-width"] = "80%";
+		about_elem.style["padding"] = "40px";
+		about_elem.style["border-radius"] = "20px";
+		about_elem.style["white-space"] = "normal";
+		about_elem.style["background-color"] = "#EEEEEE";
+		modal.appendChild(about_elem);
+
+		for (let ii=0; ii<ABOUT.length; ii++) {
+			let p = document.createElement("p");
+			p.innerHTML = ABOUT[ii];
+			about_elem.appendChild(p);
+		}
+
+		modal.addEventListener("mousedown", (ev) => {
+			this.parent_elem.removeChild(modal);
+			ev.stopPropagation();
+		});
+
+		about_elem.addEventListener("mousedown", (ev) => {
+			ev.stopPropagation();
+		});
+
+		this.parent_elem.appendChild(modal);
 	}
 }
