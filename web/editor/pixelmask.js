@@ -101,12 +101,12 @@ function mask_iter(mask) {
 		idx_hi: 0,
 		idx_lo: 1<<31,
 		next: function() {
-			let res = this.mask.data[idx_hi] & idx_lo;
+			let res = this.mask.data[this.idx_hi] & this.idx_lo;
 			if (this.idx_lo == 1) {
 				this.idx_lo = 1 << 31;
 				this.idx_hi += 1;
 			} else {
-				this.idx_lo >>= 1;
+				this.idx_lo >>>= 1;
 			}
 			return res;
 		}
@@ -114,7 +114,7 @@ function mask_iter(mask) {
 }
 
 function mask_margin(mask, margin) {
-	// Dijkstra's, kinda?
+	// Sort of a hybrid Bellman-Ford / Dijkstra's
 	let dist = new Array(mask.length).fill(margin);
 	let queue = {
 		// Crappy queue that doesn't garbage collect its data
@@ -202,6 +202,47 @@ function mask_mean(mask) {
 			}
 		}
 	}
+	return {
+		x: Math.round(xsum / count, 1), 
+		y: Math.round(ysum / count, 1),
+	};
+}
 
-	return [(xsum / count)|0, (ysum / count)|0];
+function mask_bbox(mask) {
+	// Returns [min,max)
+	let res = {
+		xmin: null,
+		ymin: null,
+		xmax: null,
+		ymax: null,
+	};
+	denull = (f) => (n, m) => (
+		n === null ? m :
+		m === null ? n :
+		f(n, m)
+	);
+	mmin = denull(Math.min);
+	mmax = denull(Math.max);
+	for (let ii=0; ii<mask.data.length; ii++) {
+		if (!mask.data[ii]) {
+			continue;
+		}
+		let x = (ii * 32) % mask.width;
+		let y = ((ii * 32) / mask.width)|0;
+		for (let jj=0; jj<32; jj++) {
+			if (mask_pix_at(mask, x, y)) {
+				res.xmin = mmin(res.xmin, x);
+				res.ymin = mmin(res.ymin, y);
+				res.xmax = mmax(res.xmax, x + 1);
+				res.ymax = mmax(res.ymax, y + 1);
+			}
+			if ((x+1) == mask.width) {
+				x = 0;
+				y += 1;
+			} else {
+				x += 1;
+			}
+		}
+	}
+	return res;
 }
