@@ -49,7 +49,7 @@
 
 function typeset(editor, mask, text, font, fontsize, line_gap) {
 	let reduced_mask = mask_margin(mask, 10);
-	let pcenter = mask_mean(reduced_mask);
+	let pcenter = mask_mean(mask);
 	console.log("Start typeset!");
 
 	if (!mask_pix_at(reduced_mask, pcenter.x, pcenter.y)) {

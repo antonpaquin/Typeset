@@ -4,7 +4,6 @@ class Toolpane extends UIComponent {
 		this.editor = editor;
 
 		this.element = null;
-		this.inner_element = null;
 
 		this.bar_tools = new Toolbar(this);
 		this.bar_context = new Toolbar(this);
@@ -21,17 +20,10 @@ class Toolpane extends UIComponent {
 
 		this.element = document.createElement("div");
 		this.element.style["display"] = "inline-block";
+		this.element.style["flex-flow"] = "column";
 
-		this.inner_element = document.createElement("div");
-		this.inner_element.style["position"] = "sticky";
-		this.inner_element.style["top"] = "8px";
-		this.inner_element.style["display"] = "flex";
-		this.inner_element.style["flex-flow"] = "column";
-		this.inner_element.style["height"] = "calc(100vh - 28px)";
-		this.element.appendChild(this.inner_element);
-
-		this.inner_element.appendChild(this.bar_tools.construct_node());
-		this.inner_element.appendChild(this.bar_context.construct_node());
+		this.element.appendChild(this.bar_tools.construct_node());
+		this.element.appendChild(this.bar_context.construct_node());
 
 		this.bar_tools.add_item(this.t_select_rect);
 		this.bar_tools.add_item(this.t_select_ellipse);
@@ -453,6 +445,23 @@ class LayerMenuEntry extends UIComponent {
 		this.element.style["background-color"] = new RGBA(255, 255, 255, 255).toString();
 	}
 }
+
+/* Typesetting options:
+ *
+ * Per segment:
+ * - Font size
+ * - Font
+ * - Vertical stretch
+ * - Vertical offset
+ * - horizontal pre / post spacing
+ *
+ * Overall:
+ * - alignment
+ * - vertical / horizontal layout
+ * - rotation
+ * - border (https://mangadex.org/chapter/837948/17)
+ */
+
 
 const ABOUT = [
 	"Icons made by <a target=\"blank\" href=\"https://www.flaticon.com/authors/freepik\" title=\"Freepik\">Freepik</a> from <a target=\"blank\" href=\"https://www.flaticon.com/\" title=\"Flaticon\">www.flaticon.com</a>",
